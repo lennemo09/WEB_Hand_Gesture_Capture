@@ -1,0 +1,20 @@
+{
+  "name": "new_v1",
+  "description": "New WEB project contains MediaPipe and Handpose libs combined.",
+  "main": "app.js",
+  "authors": [
+    "Vivek Chaudhari <vcha0018@student.monash.edu>"
+  ],
+  "license": "ISC",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "^4.5.3"
+  }
+}

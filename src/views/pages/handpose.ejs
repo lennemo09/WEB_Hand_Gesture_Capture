@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <%- include('../partials/head');%>
+
+        <script src="https://cdn.jsdelivr.net/npm/three@0.106.2/build/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/scatter-gl@0.0.1/lib/scatter-gl.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
+
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"> </script>
+        <script src="https://unpkg.com/@tensorflow-models/handpose@0.0.6/dist/handpose.js"></script>
+        
+        <link href="css/handpose.css" rel="stylesheet">
+    </head>
+
+    <header>
+        <%- include('../partials/header');%>
+    </header>
+
+    <body>
+        <div class="wrapper">
+            <div class="container">
+                <%- include('../partials/container_title');%>
+                
+                <label style="font-size: larger; margin: 0px 10px 10px 0px;">Select an operation to record data: </label>
+                <div class="custom-select" style="display: inline-block;">
+                    <select id="posOptions">
+                        <%for(var i = 0; i < posList.length; i++) {%>
+                            <option value="<%=i%>"> <%=posList[i]%> </option>
+                        <%}%>
+                    </select>
+                </div>
+                <!-- Checkbox for whether we are using left hand or not. -->
+                <div id="lhandDiv" style="display: inline-block; margin: 0px 15px; font-size: larger;">
+                    <input type="checkbox" id="lefthandchk" name="lefthand" value="Left">
+                    <label for="lefthandchk">I'm using left hand</label><br>
+                </div>
+                <h5 id="note">When you are ready, press <i style="font-weight: bold;">SPACEBAR</i> to start logging your hand's movements.</h5>
+
+                <div id="record_status" class="button button1" style="font-size: x-large;"></div>
+                <p id="cameraAccess" style="display: none;">Allow camera access</p>
+                <div id="loading"  style="display: block;">
+                    <i class="fa fa-spinner fa-spin" style="font-size: xx-large; display: inline-block;"></i>
+                    <label id="loadTxt" style="font-size: x-large; display: inline-block;">Please wait...</label>
+                </div>
+                <div id="videoContent" style="display: none;">
+                    <video id="video" class="input_video" playsinline class="vid" style="display: none;"></video>
+                    <div style="position: relative; width: 640px; height: 500px; float: left;">
+                        <input id="camBtn" class="cam_button" type="button" value="Stop Camera"/>
+                        <canvas id="output" class="output_canvas" width="640px" height="500px"></canvas>
+                    </div>
+                    <img id="instruction_img" src="" style="float: left; margin-left: 15px; max-width: 400px; max-height: 400px; width:auto; height:auto;"></img>
+                </div>
+                <div id="scatter-gl-container"></div>
+                
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.6/dat.gui.min.js"></script>
+                <script type="module" src="js/handpose_index.js"></script>
+            </div>
+            <div class="push"></div>
+        </div>
+        <%- include('../partials/footer')%>
+    </body>
+    <%- include('../partials/foot_script')%>
+
+</html>

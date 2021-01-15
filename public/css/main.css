@@ -1,0 +1,25 @@
+html, body{
+  height: 100%;
+  margin: 0;
+}
+
+body {
+    padding-top: 70px; /* Required padding for .navbar-fixed-top. Remove if using .navbar-static-top. Change if height of navigation changes. */
+}
+
+footer {
+  background: #42A5F5;
+  color: white;
+  line-height: 50px;
+  padding: 0 20px;
+}
+
+.wrapper {
+  min-height: 100%;
+  margin-bottom: -50px;
+}
+
+.footer,
+.push {
+  height: 50px;
+}

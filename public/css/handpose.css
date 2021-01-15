@@ -1,0 +1,107 @@
+.vid {
+    -webkit-transform: scaleX(-1);
+    transform: scaleX(-1);
+    visibility: hidden;
+    width: auto;
+    height: auto;
+    position: absolute;
+}
+
+#posOptions {
+    font-size: large;
+    width: 300px;
+    padding: 5px;
+    font-weight: bold;
+    border-radius: 5px;
+    border-width: medium;
+}
+
+#camBtn{
+    display: block;
+    position: absolute;
+    top: inherit;
+    right: 0px;
+    margin: 5px;
+    z-index: 98;
+}
+
+.button {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 10px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: x-large;
+    margin: 5px 0px;
+    transition-duration: 0.4s;
+    width: 100%;
+}
+
+.button1 {
+    background-color: white; 
+    color: black; 
+    border: 2px solid #008CBA;
+}
+
+.pressed{
+    background-color: #008CBA;
+    color: white;
+}
+
+.cam_button{
+    background-color: white; 
+    color: black; 
+    border: 2px solid #f44336;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    /* transition-duration: 0.1s; */
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    border-radius: 3px;
+}
+
+.cam_button:disabled{
+    background-color: #aaa;
+    cursor: none;
+    border: none;
+}
+
+.cam_button:hover:enabled {
+    background-color: #f44336;
+    color: white;
+}
+
+.cam_button:active:enabled {
+    background-color: #f44336;
+    box-shadow: 0 1px #666;
+    transform: translateY(2px);
+}
+
+.cam_button_reactivate {
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    /* transition-duration: 0.1s; */
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    border-radius: 3px;
+    border: 2px solid #008CBA;
+    background-color: white;
+    color: black;
+}
+
+.cam_button_reactivate:hover {
+    background-color: #008CBA;
+    color: white;
+}
+
+.cam_button_reactivate:active{
+    background-color: #008CBA;
+    box-shadow: 0 1px #666;
+    transform: translateY(2px);
+}

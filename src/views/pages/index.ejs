@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <%- include('../partials/head');%>
+    </head>
+
+    <header>
+        <%- include('../partials/header');%>
+    </header>
+
+    <body>
+        <div class="wrapper">
+            <div class="container">
+                <!-- Page Heading -->
+                <%- include('../partials/container_title');%>
+                <!-- /.row -->
+
+                <!-- Project One -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <h3>Test One</h3>
+                        <h4>Using HandPose Lib</h4>
+                        <p>This test requires the use of a camera. Ensure your camera is properly set up.
+                            When you have checked that you have a working camera, press the Start Test button to begin.</p>
+                        <a class="btn btn-primary" href="<%=menu[1].href%>">Start Test <span class="glyphicon glyphicon-chevron-right"></span></a>
+                    </div>
+                </div>
+                <!-- /.row -->
+                <hr>
+                <!-- Project Two -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <h3>Test Two</h3>
+                        <h4>Using MediaPipe Lib</h4>
+                        <p>This test requires the use of a camera. Ensure your camera is properly set up.
+                            When you have checked that you have a working camera, press the Start Test button to begin.</p>
+                        <a class="btn btn-primary" href="<%=menu[2].href%>">Start Test <span class="glyphicon glyphicon-chevron-right"></span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="push"></div>
+        <%- include('../partials/footer')%>
+    </body>
+    
+    <%- include('../partials/foot_script')%>
+</html>

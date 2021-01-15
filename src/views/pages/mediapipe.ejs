@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <%- include('../partials/head');%>
+
+        <script src="https://cdn.jsdelivr.net/npm/brython@3.8.10/brython.min.js"> </script>
+        <script src="https://cdn.jsdelivr.net/npm/brython@3.8.10/brython_stdlib.js"> </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+        <link href="css/mediapipe.css" rel="stylesheet">
+    </head>
+
+    <header>
+        <%- include('../partials/header');%>
+    </header>
+
+    <body>
+        <div class="wrapper">
+            <div class="container">
+                <%- include('../partials/container_title');%>
+
+                <label style="font-size: larger; margin: 0px 10px 10px 0px;">Select an operation to record data: </label>
+                <div style="width:400px; display: inline-block;">
+                    <select id="posOptions">
+                        <%for(var i = 0; i < posList.length; i++) {%>
+                            <option value="<%=i%>"> <%=posList[i]%> </option>
+                        <%}%>
+                    </select>
+                </div>
+                <h5 id="note">When you are ready, press <i style="font-weight: bold;">SPACEBAR</i> to start logging your hand's movements.</h5>
+
+                <div id="record_status" class="button button1" style="font-size: x-large;"></div>
+                <p id="cameraAccess" style="display: none;">Allow camera access</p>
+                <div id="loading"  style="display: block;">
+                    <i class="fa fa-spinner fa-spin" style="font-size: xx-large; display: inline-block;"></i>
+                    <label id="loadTxt" style="font-size: x-large; display: inline-block;">Please wait...</label>
+                </div>
+                <div id="videoContent" style="display: none;">
+                    <video class="input_video" style="display: none;"></video>
+                    <div style="position: relative; width: 640px; height: 500px; float: left;">
+                        <input id="camBtn" class="cam_button" type="button" value="Stop Camera"/>
+                        <canvas class="output_canvas" width="640px" height="500px"></canvas>
+                    </div>
+                    <img id="instruction_img" src="" style="float: left; margin-left: 15px; max-width: 400px; max-height: 400px; width:auto; height:auto;"></img>
+                </div>
+                <script src="js/mediapipe_index.js"></script>
+                <span id="output"></span>
+            </div>
+            <div class="push"></div>
+        </div>
+        <%- include('../partials/footer')%>
+    </body>
+    <%- include('../partials/foot_script')%>
+
+</html>
