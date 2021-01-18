@@ -94,7 +94,7 @@ app.post('/', (req, res) => {
 
 app.post('/mediapipe', (req, res) => {
     try {
-        saveFile("results/mediapipe/", req.body, "mediapipe");
+        saveFile(`results/mediapipe/${req.body.dirName}`, req.body.data, "mediapipe");
     } catch (error) {
         console.log(error);
     }
@@ -103,7 +103,8 @@ app.post('/mediapipe', (req, res) => {
 
 app.post('/handpose', (req, res) => {
     try {
-        saveFile("results/handpose/", req.body, "handpose");
+        custom_dir = req.body.dirName;
+        saveFile(`results/handpose/${req.body.dirName.toString().trim()}`, req.body.data, "handpose");
     } catch (error) {
         console.log(error);
     }
@@ -119,7 +120,7 @@ function JSONToCSVString(jsonData, isMediaPipeData) {
     sampleData += "\n";
     for (let i = 0; i < jsonData.length; i++) {
         sampleData += `${jsonData[i].time}`;
-        console.log(`i: ${i}`);
+        // console.log(`i: ${i}`);
         for (let j = 0; j < jsonData[i].keypoints.length; j++) {
             if (jsonData[i].keypoints.length == 21)
                 if (isMediaPipeData)
@@ -136,10 +137,15 @@ function saveFile(dirPath, responseData, apiName) {
     const operation = responseData.opIndex.toString().trim() + "_" + responseData.operation.toString().trim();
     const datetime = responseData.datetime.toString().trim();
     
+    if(!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath);
+    }
+
     for (const [key, value] of Object.entries(responseData.handdata)) {
         const fileName = `${operation}#${key}#${datetime}.csv`;
-        const filePath = dirPath + fileName;
-        fs.writeFile(filePath, JSONToCSVString(value, apiName.toLowerCase().includes("mediapipe")), {
+        const filePath = `${dirPath}/${fileName}`;
+        const csvData = JSONToCSVString(value, apiName.toLowerCase().includes("mediapipe"));
+        fs.writeFile(filePath, csvData, {
             flag: "w"
             }, function(err) {
             if (err) {

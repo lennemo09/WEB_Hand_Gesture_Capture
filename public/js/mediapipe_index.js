@@ -1,4 +1,4 @@
-var worker = new Worker('js/transport.js');
+var worker = new Worker('js/worker.js');
 const dropDownElement = document.querySelector('#posOptions');
 const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
@@ -76,7 +76,6 @@ function onResults(results) {
 function toggleVideo(){
     if ($("#camBtn").hasClass("cam_button")){
         videoElement.srcObject.getTracks().forEach(track => track.stop());
-        onResults(lastResult);
     
         $("#camBtn").removeClass("cam_button");
         $("#camBtn").addClass("cam_button_reactivate");
@@ -163,15 +162,42 @@ function startLog() {
     document.getElementById("posOptions").disabled = true;
 }
   
-function stopLog(data) {
-    // Enable the next instruction dropdown.
+function stopLog(parsedData) {
+    // Enable the next instruction dropdown. 
     document.getElementById("posOptions").disabled = false;
 
-    $.post(location.url, data);
+    if(document.getElementById('parserchk').checked)
+        worker.postMessage(["mediapipe", parsedData]);
+    else
+        $.post(location.url, {dirName: $('#dirNameDiv input').val().trim(), data: parsedData});
+}
+
+worker.onmessage = function (e) {
+    e.data.forEach(csvData => {
+        download(csvData[0], csvData[1]);
+    });
+}
+
+function download(filename, data) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(data));
+    element.setAttribute('download', filename);
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
 }
 
 function onKeyDownEvent(e) {
+    if ($('#dirNameDiv input').is(':focus'))
+        return;
     if(e.keyCode == 32 && $("#camBtn").hasClass("cam_button")) {
+        if (!$('#parserchk')[0].checked && $('#dirNameDiv input').val() == "") {
+            alert('Please provide server side directory name, to download your gesture file under that directory!');
+            e.preventDefault();
+            return;
+        }
         switch (currentState) {
             case states.IDLE:
                 $("#camBtn").attr("disabled", "disabled");
@@ -197,9 +223,15 @@ function onKeyDownEvent(e) {
     }
 }
 
+function fileChkClicked(e) {
+    dirDiv = document.getElementById('dirNameDiv');
+    $('#dirNameDiv').css('display', (e.checked) ? 'none' : 'block');
+}
+
 function main(){
     dropDownElement.addEventListener('change', showInstructionImage);
     window.addEventListener('keydown', onKeyDownEvent);
+    document.getElementById('parserchk').addEventListener('onclick', fileChkClicked)
     $("#record_status").text("Status: Please Wait...");
     $("#cameraAccess").css("display", "block");
     $("#loading").css("display", "inline-block");
