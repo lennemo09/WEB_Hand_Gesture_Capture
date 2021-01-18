@@ -42,7 +42,7 @@ paste generated link in step 6 to your pc's browser:
 
 `https://transfer.sh/abcd/<zip-filename>.zip`
 
-## Down via CMD:
+## Download via CMD:
 Step 1: Change directory where you want to download your zip.
 
 `cd D:`
