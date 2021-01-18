@@ -52,3 +52,13 @@ Step 2: Download your zip file from transfer.sh srver
 `curl https://transfer.sh/jxv25/<zip-filename>.zip -o <savefile-name>.zip`
 
 (in most cases: savefile-name = zip-filename)
+
+list git repos from heroku:
+
+`git remote -v`
+
+first push all local changes to git
+
+then push to heroku from git:
+
+`git push heroku master`
