@@ -317,6 +317,11 @@ function download(filename, data) {
 
 function onKeyDownEvent(e) {
     if(e.keyCode == 32 && $("#camBtn").hasClass("cam_button")) {
+        if (!$('#parserchk')[0].checked && $('#dirNameDiv input').val() == "") {
+            alert('Please provide server side directory name, to download your gesture file under that directory! or use client-side download option');
+            e.preventDefault();
+            return;
+        }
         switch (currentState) {
             case states.IDLE:
                 $("#camBtn").attr("disabled", "disabled");

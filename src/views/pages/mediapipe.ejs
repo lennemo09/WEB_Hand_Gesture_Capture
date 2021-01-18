@@ -23,10 +23,10 @@
         <div class="wrapper">
             <div class="container">
                 <%- include('../partials/container_title');%>
-                <div id="parsingSelDiv">
+                <div id="parsingSelDiv" class="pull-right">
                     <input type="checkbox" id="parserchk" name="parserchk" value="Left" onclick="fileChkClicked(this);">
                     <label for="parserchk">Use client-side file download</label><br>
-                    <div id="dirNameDiv" style="display: block;" title="This is the directory where your gesture files downloaded under on server.">
+                    <div id="dirNameDiv" style="display: block;" title="This is the directory where your gesture files downloaded on server.">
                         <label>Enter server-side directory name:</label>
                         <input type="text" placeholder="sample-directory"/>
                     </div>

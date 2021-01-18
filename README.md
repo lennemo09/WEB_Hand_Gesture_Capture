@@ -53,11 +53,17 @@ Step 2: Download your zip file from transfer.sh srver
 
 (in most cases: savefile-name = zip-filename)
 
+## Git - Heroku push
+
 list git repos from heroku:
 
 `git remote -v`
 
 first push all local changes to git
+
+change directory in cmd to project directory
+
+`cd D:\Projects\Summer\WEB\Gesture-Capture-and-Analysis`
 
 then push to heroku from git:
 

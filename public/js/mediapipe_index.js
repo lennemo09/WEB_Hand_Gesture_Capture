@@ -206,7 +206,7 @@ function onKeyDownEvent(e) {
         return;
     if(e.keyCode == 32 && $("#camBtn").hasClass("cam_button")) {
         if (!$('#parserchk')[0].checked && $('#dirNameDiv input').val() == "") {
-            alert('Please provide server side directory name, to download your gesture file under that directory!');
+            alert('Please provide server side directory name, to download your gesture file under that directory! or use client-side download option');
             e.preventDefault();
             return;
         }
