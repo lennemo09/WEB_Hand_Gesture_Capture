@@ -1,3 +1,4 @@
+var worker = new Worker('js/worker.js');
 const dropDownElement = document.querySelector('#posOptions');
 const VIDEO_WIDTH = 640;
 const VIDEO_HEIGHT = 500;
@@ -23,6 +24,7 @@ let videoWidth, videoHeight, rafID, ctx, canvas, ANCHOR_POINTS,
 };
 const stats = new Stats();
 let model;
+let isLeftHandUsed = false;
 navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
 function getFormattedDateTime(dt = Date){
@@ -264,7 +266,6 @@ function buildLog(actionName, actionPosition) {
     }
 }
 
-let isLeftHandUsed = false;
 function startLog() {
     // Init time elapsed counter and data logging.
     initTimer = new Date();
@@ -272,13 +273,46 @@ function startLog() {
     isLeftHandUsed = document.getElementById('lefthandchk').checked;
     // Disable the instruction dropdown.
     document.getElementById("posOptions").disabled = true;
+
+    $('#responseStatus').text('');
 }
   
-function stopLog(data) {
+function stopLog(parsedData) {
     // Enable the next instruction dropdown.
     document.getElementById("posOptions").disabled = false;
 
-    $.post(location.url, data);
+    if(document.getElementById('parserchk').checked)
+        worker.postMessage(["handpose", parsedData]);
+    else {
+        $.post(location.url, {dirName: $('#dirNameDiv input').val().trim(), data: parsedData}, function (data, status, jqXHR) {
+            if (status == 'success') {
+                $('#responseStatus').css('color', 'green');
+                $('#responseStatus').text(`"${$("#posOptions option:selected").text().trim()}" gesture's files saved to server Successfully!`);
+            } else {
+                $('#responseStatus').css('color', 'red');
+                $('#responseStatus').text('There was an error while saving file on server!');
+            }
+            $('#responseStatus').fadeOut(6600);
+        });
+    }
+    // $.post(location.url, data);
+}
+
+worker.onmessage = function (e) {
+    e.data.forEach(csvData => {
+        download(csvData[0], csvData[1]);
+    });
+}
+
+function download(filename, data) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(data));
+    element.setAttribute('download', filename);
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
 }
 
 function onKeyDownEvent(e) {
@@ -307,9 +341,14 @@ function onKeyDownEvent(e) {
     }
 }
 
+function fileChkClicked(e) {
+    $('#dirNameDiv').css('display', (document.getElementById('parserchk').checked) ? 'none' : 'block');
+}
+
 async function main() {
     dropDownElement.addEventListener('change', showInstructionImage);
     window.addEventListener('keydown', onKeyDownEvent);
+    $('#parserchk').click(fileChkClicked);
     $("#record_status").text("Status: Please Wait...");
     $("#cameraAccess").css("display", "block");
     $("#loading").css("display", "inline-block");

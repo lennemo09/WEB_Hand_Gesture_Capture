@@ -160,6 +160,8 @@ function startLog() {
     
     // Disable the instruction dropdown.
     document.getElementById("posOptions").disabled = true;
+
+    $('#responseStatus').text('');
 }
   
 function stopLog(parsedData) {
@@ -168,8 +170,18 @@ function stopLog(parsedData) {
 
     if(document.getElementById('parserchk').checked)
         worker.postMessage(["mediapipe", parsedData]);
-    else
-        $.post(location.url, {dirName: $('#dirNameDiv input').val().trim(), data: parsedData});
+    else {
+        $.post(location.url, {dirName: $('#dirNameDiv input').val().trim(), data: parsedData}, function (data, status, jqXHR) {
+            if (status == 'success') {
+                $('#responseStatus').css('color', 'green');
+                $('#responseStatus').text(`"${$("#posOptions option:selected").text().trim()}" gesture's files saved to server Successfully!`);
+            } else {
+                $('#responseStatus').css('color', 'red');
+                $('#responseStatus').text('There was an error while saving file on server!');
+            }
+            $('#responseStatus').fadeOut(6600);
+        });
+    }
 }
 
 worker.onmessage = function (e) {
@@ -224,14 +236,12 @@ function onKeyDownEvent(e) {
 }
 
 function fileChkClicked(e) {
-    dirDiv = document.getElementById('dirNameDiv');
     $('#dirNameDiv').css('display', (e.checked) ? 'none' : 'block');
 }
 
 function main(){
     dropDownElement.addEventListener('change', showInstructionImage);
     window.addEventListener('keydown', onKeyDownEvent);
-    document.getElementById('parserchk').addEventListener('onclick', fileChkClicked)
     $("#record_status").text("Status: Please Wait...");
     $("#cameraAccess").css("display", "block");
     $("#loading").css("display", "inline-block");

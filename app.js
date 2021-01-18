@@ -1,9 +1,10 @@
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const mkdirp = require('mkdirp');
+const https = require('https');
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 8000;
+const DB_TKN = 'NCkvNvPoTDoAAAAAAAAAAcOy_lNN3xraUL1krzJn6werjpsap8GpKkPc6o_VQbti';
 
 //site variables
 const appInfo = {
@@ -92,9 +93,15 @@ app.post('/', (req, res) => {
     // nothig yet
 });
 
-app.post('/mediapipe', (req, res) => {
+app.post('/mediapipe', function(req, res) {
     try {
-        saveFile(`results/mediapipe/${req.body.dirName}`, req.body.data, "mediapipe");
+        uploadFilesToDropBox(
+            buildFilesData(
+                `results/mediapipe/${req.body.dirName.toString().trim()}`, 
+                req.body.data, 
+                "mediapipe")
+        );
+        res.status(200);
     } catch (error) {
         console.log(error);
     }
@@ -103,8 +110,13 @@ app.post('/mediapipe', (req, res) => {
 
 app.post('/handpose', (req, res) => {
     try {
-        custom_dir = req.body.dirName;
-        saveFile(`results/handpose/${req.body.dirName.toString().trim()}`, req.body.data, "handpose");
+        uploadFilesToDropBox(
+            buildFilesData(
+                `results/handpose/${req.body.dirName.toString().trim()}`, 
+                req.body.data, 
+                "handpose")
+        );
+        res.status(200);
     } catch (error) {
         console.log(error);
     }
@@ -133,25 +145,67 @@ function JSONToCSVString(jsonData, isMediaPipeData) {
     return sampleData;
 }
 
-function saveFile(dirPath, responseData, apiName) {
+function buildFilesData(dirPath, responseData, apiName) {
     const operation = responseData.opIndex.toString().trim() + "_" + responseData.operation.toString().trim();
     const datetime = responseData.datetime.toString().trim();
-    
-    if(!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath);
-    }
-
+    let fileData = []
     for (const [key, value] of Object.entries(responseData.handdata)) {
         const fileName = `${operation}#${key}#${datetime}.csv`;
         const filePath = `${dirPath}/${fileName}`;
         const csvData = JSONToCSVString(value, apiName.toLowerCase().includes("mediapipe"));
-        fs.writeFile(filePath, csvData, {
+        fileData.push({path: filePath, api: apiName, data: csvData});
+    }
+    return fileData;
+}
+
+function saveFileLocally(fileData) {
+    results = [];
+    const dirPath = fileData[0].path.substring(0, str.lastIndexOf('/'));
+    if(!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath);
+    }
+    filesData.forEach(fileInfo => {
+        fs.writeFile(fileInfo.path, fileInfo.data, {
             flag: "w"
             }, function(err) {
             if (err) {
                 return console.log(err);
             }
-            console.log("The new file was created: " + fileName);
+            console.log("The new file was created on server pc: " + fileName);
+            results.push(`Create#${fileInfo.path.substring(fileInfo.path.indexOf(fileInfo.api) + fileInfo.api.length)}`);
         });
-    }
+    });
+    return results;
+}
+
+function uploadFilesToDropBox(filesData) {
+    filesData.forEach(fileInfo => {
+        const req = https.request('https://content.dropboxapi.com/2/files/upload', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${DB_TKN}`,
+            'Dropbox-API-Arg': JSON.stringify({
+                'path': `/${fileInfo.path}`,
+                'mode': 'overwrite',
+                'autorename': true, 
+                'mute': false,
+                'strict_conflict': false
+            }),
+            'Content-Type': 'application/octet-stream',
+        }
+        }, (res) => {
+            console.log("statusCode: ", res.statusCode);
+            if (res.statusCode == 200) {
+                console.log('File Uploaded Successfully!');
+                console.log(`Upload#${fileInfo.path.substring(fileInfo.path.indexOf(fileInfo.api) + fileInfo.api.length)}`);
+            }
+            // console.log("headers: ", res.headers);
+            res.on('data', function(d) {
+                // process.stdout.write(d);
+            });
+        });
+
+        req.write(fileInfo.data);
+        req.end();
+    });
 }

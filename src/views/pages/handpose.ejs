@@ -22,7 +22,16 @@
         <div class="wrapper">
             <div class="container">
                 <%- include('../partials/container_title');%>
-                
+                <div id="parsingSelDiv">
+                    <input type="checkbox" id="parserchk" name="parserchk" value="Left">
+                    <label for="parserchk">Use client-side file download</label><br>
+                    <div id="dirNameDiv" style="display: block;" title="This is the directory where your gesture files downloaded under on server.">
+                        <label>Enter server-side directory name:</label>
+                        <input type="text" placeholder="sample-directory"/>
+                    </div>
+                    <p id='responseStatus'></p>
+                </div>
+
                 <label style="font-size: larger; margin: 0px 10px 10px 0px;">Select an operation to record data: </label>
                 <div class="custom-select" style="display: inline-block;">
                     <select id="posOptions">
