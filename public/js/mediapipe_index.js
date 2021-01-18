@@ -168,10 +168,19 @@ function stopLog(parsedData) {
     // Enable the next instruction dropdown. 
     document.getElementById("posOptions").disabled = false;
 
+    if (parsedData.handdata.LHand.length <= 0 && parsedData.handdata.RHand.length <= 0) {
+        $('#responseStatus').css('display', 'inline-block');
+        $('#responseStatus').css('color', 'salmon');
+        $('#responseStatus').text('There are no data in recorded clip to save!');
+        $('#responseStatus').fadeOut(6600);
+        return;
+    }
+    
     if(document.getElementById('parserchk').checked)
         worker.postMessage(["mediapipe", parsedData]);
     else {
         $.post(location.url, {dirName: $('#dirNameDiv input').val().trim(), data: parsedData}, function (data, status, jqXHR) {
+            $('#responseStatus').css('display', 'inline-block');
             if (status == 'success') {
                 $('#responseStatus').css('color', 'green');
                 $('#responseStatus').text(`"${$("#posOptions option:selected").text().trim()}" gesture's files saved to server Successfully!`);
