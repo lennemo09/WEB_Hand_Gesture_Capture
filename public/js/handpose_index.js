@@ -288,7 +288,7 @@ function stopLog(parsedData) {
         $('#responseStatus').fadeOut(6600);
         return;
     }
-    
+
     if(document.getElementById('parserchk').checked)
         worker.postMessage(["handpose", parsedData]);
     else {
@@ -326,8 +326,8 @@ function download(filename, data) {
 
 function onKeyDownEvent(e) {
     if(e.keyCode == 32 && $("#camBtn").hasClass("cam_button")) {
-        if (!$('#parserchk')[0].checked && $('#dirNameDiv input').val() == "") {
-            alert('Please provide server side directory name, to download your gesture file under that directory! or use client-side download option');
+        if (!$('#parserchk')[0].checked && $('#dirNameDiv input').val().trim() == "") {
+            alert('Please provide server side directory name, to upload your gesture files under that directory! or use client-side download option');
             e.preventDefault();
             return;
         }
