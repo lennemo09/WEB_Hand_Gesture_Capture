@@ -1,3 +1,24 @@
+/*
+Author:
+Vivekkumar Chaudhari (vcha0018@student.monash.edu) 
+    Student - Master of Information Technology
+    Monash University, Clayton, Australia
+
+Purpose:
+Developed under Summer Project 'AR Hand Gesture Capture and Analysis'
+
+Supervisors: 
+Barrett Ens (barrett.ens@monash.edu)
+    Monash University, Clayton, Australia
+ Max Cordeil (max.cordeil@monash.edu)
+    Monash University, Clayton, Australia
+
+About File:
+HandPose API custom usage.
+It support recording through client's webcam and also parsing cordinate data through API.
+cordinate data either send to server or downloaded on client side.
+*/
+
 var worker = new Worker('js/worker.js');
 const dropDownElement = document.querySelector('#posOptions');
 const VIDEO_WIDTH = 640;

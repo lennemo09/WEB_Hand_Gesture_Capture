@@ -1,9 +1,33 @@
+/*
+Author:
+Vivekkumar Chaudhari (vcha0018@student.monash.edu) 
+    Student - Master of Information Technology
+    Monash University, Clayton, Australia
+
+Purpose:
+Developed under Summer Project 'AR Hand Gesture Capture and Analysis'
+
+Supervisors: 
+Barrett Ens (barrett.ens@monash.edu)
+    Monash University, Clayton, Australia
+ Max Cordeil (max.cordeil@monash.edu)
+    Monash University, Clayton, Australia
+
+About File:
+Entry point of the application.
+It server client requestes and catch responses from clients using post methods.
+Also, parse the response json and save cordinate data to csv files.
+*/
+
+// Add required libraries
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const https = require('https');
 const express = require('express');
 const app = express();
+// Default Port configuration
 const PORT = process.env.PORT || 8000;
+// DropBox Token Id
 const DB_TKN = 'NCkvNvPoTDoAAAAAAAAAAcOy_lNN3xraUL1krzJn6werjpsap8GpKkPc6o_VQbti';
 
 //site variables
@@ -21,6 +45,7 @@ const pageInfo = [
     {key: 'contact', value: 'Contact Us'},
 ];
 
+// Available Gesture types(actions).
 const positionList = [
     "Select Range",
     "Select Lasso", 
@@ -37,6 +62,7 @@ const positionList = [
     "Export Data"
 ];
 
+// Build dynamic navigation menu script
 function GetNavMenu(){
     menu = [];
     pageInfo.forEach(function(item){
@@ -72,10 +98,12 @@ var handposeRouter = require('./src/routes/handposeRoute')(appInfo, pageInfo[1],
 var mediapipeRouter = require('./src/routes/mediapipeRoute')(appInfo, pageInfo[2], GetNavMenu(), positionList);
 var contactRouter = require('./src/routes/contactRoute')(appInfo, pageInfo[3], GetNavMenu());
 
+// Navigation to routes
 app.use('/' + pageInfo[1].key, handposeRouter);
 app.use('/' + pageInfo[2].key, mediapipeRouter);
 app.use('/' + pageInfo[3].key, contactRouter);
 
+// Home page request/response
 app.get('/', (req, res) => {
     res
     .status(200)
@@ -93,9 +121,10 @@ app.post('/', (req, res) => {
     // nothig yet
 });
 
+// MediaPipe page request/response
 app.post('/mediapipe', function(req, res) {
     try {
-        uploadFilesToDropBox(
+        saveFileLocally(
             buildFilesData(
                 `results/mediapipe/${req.body.dirName.toString().trim()}`, 
                 req.body.data, 
@@ -108,6 +137,7 @@ app.post('/mediapipe', function(req, res) {
     res.end(); // end the response
 });
 
+// HandPose page request/response
 app.post('/handpose', (req, res) => {
     try {
         uploadFilesToDropBox(
@@ -123,6 +153,7 @@ app.post('/handpose', (req, res) => {
     res.end(); // end the response
 });
 
+// To convert json string to csv string.
 function JSONToCSVString(jsonData, isMediaPipeData) {
     sampleData = "";
     sampleData += "TIME";
@@ -145,6 +176,7 @@ function JSONToCSVString(jsonData, isMediaPipeData) {
     return sampleData;
 }
 
+// build csv file data directory with given string as its content.
 function buildFilesData(dirPath, responseData, apiName) {
     const operation = responseData.opIndex.toString().trim() + "_" + responseData.operation.toString().trim();
     const datetime = responseData.datetime.toString().trim();
@@ -158,26 +190,26 @@ function buildFilesData(dirPath, responseData, apiName) {
     return fileData;
 }
 
+// create csv files locally with given csv data directories.
 function saveFileLocally(fileData) {
-    results = [];
-    const dirPath = fileData[0].path.substring(0, str.lastIndexOf('/'));
+    const dirPath = fileData[0].path.substring(0, fileData[0].path.lastIndexOf('/'));
     if(!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath);
     }
-    filesData.forEach(fileInfo => {
+    fileData.forEach(fileInfo => {
         fs.writeFile(fileInfo.path, fileInfo.data, {
             flag: "w"
             }, function(err) {
             if (err) {
                 return console.log(err);
             }
-            console.log("The new file was created on server pc: " + fileName);
-            results.push(`Create#${fileInfo.path.substring(fileInfo.path.indexOf(fileInfo.api) + fileInfo.api.length)}`);
+            console.log("The new file was created on server pc: " + fileInfo.path);
+            console.log(`Create#${fileInfo.path.substring(fileInfo.path.indexOf(fileInfo.api) + fileInfo.api.length)}`);
         });
     });
-    return results;
 }
 
+// create csv files on dropbox with given csv data directories.
 function uploadFilesToDropBox(filesData) {
     filesData.forEach(fileInfo => {
         const req = https.request('https://content.dropboxapi.com/2/files/upload', {

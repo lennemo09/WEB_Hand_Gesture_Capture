@@ -1,3 +1,22 @@
+/*
+Author:
+Vivekkumar Chaudhari (vcha0018@student.monash.edu) 
+    Student - Master of Information Technology
+    Monash University, Clayton, Australia
+
+Purpose:
+Developed under Summer Project 'AR Hand Gesture Capture and Analysis'
+
+Supervisors: 
+Barrett Ens (barrett.ens@monash.edu)
+    Monash University, Clayton, Australia
+ Max Cordeil (max.cordeil@monash.edu)
+    Monash University, Clayton, Australia
+
+About File:
+MediaPipe page route file. It accept custom template.
+*/
+
 var express = require('express');
 
 var mediapipeRouter = express.Router();

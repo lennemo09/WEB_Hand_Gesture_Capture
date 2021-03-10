@@ -1,70 +1,30 @@
-# Gesture-Capture-and-Analysis
+# Hand Gesture Capture
 
-AR HAND Gesture Capture and Analysis
+The main purpose of this application is to capture gesture data of different users with giving them a small insight of gesture operation. The web application covers broad number of users to build gesture dataset and used for further analysis.
+<br>
+Hand detection of any gesture categorised into 21 different hand points, called as Joints. The API underneath the application would records these joints information as a space coordinates x, y and z with a stack of timeframes and saved into .csv file as a complete one gesture.
 
-To download files from heroku server:
-## On CMD:
-Step 1: Login in heroku server via
+## Run
 
-`heroku login`
+``npm start``
+<br>
 
-Step 2: open your app directory inside CMD:
+### Default port is : 8000
 
+### Hosted Application url: https://hand-gesture-capture-analysis.herokuapp.com/
+<br>
 
-`heroku run bash -a <appname>`
+### Author
+Vivekkumar Chaudhari <br>
+Student <br>
+vcha0018@student.monash.edu <br>
+Monash University, Clayton, Australia.
 
-(current appname = hand-gesture-capture-analysis)
+### Supervisors
+Barrett Ens <br>
+barrett.ens@monash.edu <br>
+Monash University, Clayton, Australia. <br>
 
-Step 3: To list out project directory:
-
-`ls`
-
-Step 4: Go to result directory:
-
-`cd results/`
-
-Step 5: Zip the directory:
-
-`zip -r <zip-filename>.zip <directory-name>`
-
-Step 6: Send zip file to transfer.sh server
-
-`curl --upload-file mediapipe-zip-1.zip https://transfer.sh/mediapipe-zip-1.zip`
-
-(caution: file would moved to transfer.sh)
-
-Step 6 would result in url like this:
-
-`https://transfer.sh/abcd/<zip-filename>.zip`
-
-## Download via link:
-paste generated link in step 6 to your pc's browser:
-
-`https://transfer.sh/abcd/<zip-filename>.zip`
-
-## Download via CMD:
-Step 1: Change directory where you want to download your zip.
-
-`cd D:`
-
-Step 2: Download your zip file from transfer.sh srver
-
-`curl https://transfer.sh/jxv25/<zip-filename>.zip -o <savefile-name>.zip`
-
-(in most cases: savefile-name = zip-filename)
-
-## Git - Heroku push
-
-list git repos from heroku:
-
-`git remote -v`
-
-first push all local changes to git
-
-change directory in cmd to project directory
-
-`cd D:\Projects\Summer\WEB\Gesture-Capture-and-Analysis`
-
-then push to heroku from git:
-
-`git push heroku master`
+Max Cordeil <br>
+max.cordeil@monash.edu <br>
+Monash University, Clayton, Australia. <br>

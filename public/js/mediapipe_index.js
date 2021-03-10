@@ -1,3 +1,25 @@
+/*
+Author:
+Vivekkumar Chaudhari (vcha0018@student.monash.edu) 
+    Student - Master of Information Technology
+    Monash University, Clayton, Australia
+
+Purpose:
+Developed under Summer Project 'AR Hand Gesture Capture and Analysis'
+
+Supervisors: 
+Barrett Ens (barrett.ens@monash.edu)
+    Monash University, Clayton, Australia
+ Max Cordeil (max.cordeil@monash.edu)
+    Monash University, Clayton, Australia
+
+About File:
+MediaPipe API custom usage.
+It support recording through client's webcam and also parsing cordinate data through API.
+cordinate data either send to server or downloaded on client side.
+*/
+
+// Worker thread - run parallel to parse json cordinate data recorded by API.
 var worker = new Worker('js/worker.js');
 const dropDownElement = document.querySelector('#posOptions');
 const videoElement = document.getElementsByClassName('input_video')[0];
@@ -18,6 +40,7 @@ let intervalID = null;
 const months = ["JAN", "FEB", "MAR","APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 let buidInProcess = false;
 
+// To get current datetime string format.
 function getFormattedDateTime(dt = Date){
     return dt.getDate() + "-" + 
         months[dt.getMonth()] + "-" + 
@@ -27,6 +50,7 @@ function getFormattedDateTime(dt = Date){
         dt.getSeconds();
 }
 
+// Get latest version of hand API from CDN.
 const hands = new Hands({locateFile: (file) => {
     return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.1/${file}`;
 }});
@@ -35,6 +59,7 @@ hands.setOptions({
     minDetectionConfidence: 0.5,
     minTrackingConfidence: 0.5
 });
+// Initialize Camera with properties. 
 const camera =  new Camera(videoElement, {
     onFrame: async () => {
         if ($("#cameraAccess").css("display") == "block")
@@ -51,6 +76,7 @@ const camera =  new Camera(videoElement, {
     height: VIDEO_HEIGHT
 });
 
+// Callback of API, called when hand is detected.
 function onResults(results) {
     // console.log(results);
     canvasCtx.save();
@@ -73,6 +99,7 @@ function onResults(results) {
     canvasCtx.restore();
 }
 
+// Turn On/Off Camera.
 function toggleVideo(){
     if ($("#camBtn").hasClass("cam_button")){
         videoElement.srcObject.getTracks().forEach(track => track.stop());
@@ -91,6 +118,7 @@ function toggleVideo(){
     }
 }
 
+// Show Image right to recording screen.
 function showInstructionImage() {
     // References to directory and element.
     const instruction_dir = "/imgs/instructions/";
@@ -99,6 +127,7 @@ function showInstructionImage() {
     instruction_el.src = instruction_dir + instructionIndex.toString() + ".gif";
 }
 
+// Format recording data into Json type. 
 function buildLog(actionName, actionPosition) {
     if (!buidInProcess) {
         buidInProcess = true;
@@ -154,6 +183,7 @@ function buildLog(actionName, actionPosition) {
     }
 }
 
+// Start recording gesture cordinates.
 function startLog() {
     // Init time elapsed counter and data logging.
     initTimer = new Date();
@@ -163,7 +193,8 @@ function startLog() {
 
     $('#responseStatus').text('');
 }
-  
+
+// Stop recording gesture cordinates.
 function stopLog(parsedData) {
     // Enable the next instruction dropdown. 
     document.getElementById("posOptions").disabled = false;
@@ -176,9 +207,12 @@ function stopLog(parsedData) {
         return;
     }
 
+    // If client-side parse enabled, run background thread to parse json data to csv.
+    // To increase performance of the app.
     if(document.getElementById('parserchk').checked)
         worker.postMessage(["mediapipe", parsedData]);
     else {
+        // Send data to server.
         $.post(location.url, {dirName: $('#dirNameDiv input').val().trim(), data: parsedData}, function (data, status, jqXHR) {
             $('#responseStatus').css('display', 'inline-block');
             if (status == 'success') {
@@ -193,12 +227,14 @@ function stopLog(parsedData) {
     }
 }
 
+// Save data on client side.
 worker.onmessage = function (e) {
     e.data.forEach(csvData => {
         download(csvData[0], csvData[1]);
     });
 }
 
+// Auto download data on client-side after recording.
 function download(filename, data) {
     var element = document.createElement('a');
     element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(data));
@@ -210,6 +246,7 @@ function download(filename, data) {
     document.body.removeChild(element);
 }
 
+// Scan for keyboard event for gesture recording.
 function onKeyDownEvent(e) {
     if ($('#dirNameDiv input').is(':focus'))
         return;
@@ -248,6 +285,7 @@ function fileChkClicked(e) {
     $('#dirNameDiv').css('display', (e.checked) ? 'none' : 'block');
 }
 
+// Set default parameters and start camera.
 function main(){
     dropDownElement.addEventListener('change', showInstructionImage);
     window.addEventListener('keydown', onKeyDownEvent);
@@ -260,4 +298,5 @@ function main(){
     document.getElementById("camBtn").addEventListener("click", toggleVideo);
 }
 
+// Main Execution.
 main();
