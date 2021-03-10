@@ -16,7 +16,6 @@ Hand detection of any gesture categorised into 21 different hand points, called 
 
 ### Author
 Vivekkumar Chaudhari <br>
-Student <br>
 vcha0018@student.monash.edu <br>
 Monash University, Clayton, Australia.
 
