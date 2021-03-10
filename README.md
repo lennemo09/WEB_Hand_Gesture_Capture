@@ -9,9 +9,9 @@ Hand detection of any gesture categorised into 21 different hand points, called 
 ``npm start``
 <br>
 
-### Default port is : 8000
+### Default port is : ``8000``
 
-### Hosted Application url: https://hand-gesture-capture-analysis.herokuapp.com/
+### Hosted Application URL: https://hand-gesture-capture-analysis.herokuapp.com/
 <br>
 
 ### Author
