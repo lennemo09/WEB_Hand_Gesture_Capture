@@ -37,6 +37,22 @@
     z-index: 98;
 }
 
+#webgl_container {
+    position: relative;
+}
+
+#videoContent {
+    position: absolute;
+    z-index: 8;    /* position this canvas at bottom of the other one */
+}
+
+#dataOverlay {
+    position: absolute;
+    width: 640px; 
+    height: 500px;
+    z-index: 10;      /* position this canvas on top of the other one */
+}
+
 .button {
     background-color: #4CAF50; /* Green */
     border: none;

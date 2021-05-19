@@ -49,15 +49,28 @@
                     <i class="fa fa-spinner fa-spin" style="font-size: xx-large; display: inline-block;"></i>
                     <label id="loadTxt" style="font-size: x-large; display: inline-block;">Please wait...</label>
                 </div>
-                <div id="videoContent" style="display: none;">
-                    <video class="input_video" style="display: none;"></video>
-                    <div style="position: relative; width: 640px; height: 500px; float: left;">
-                        <input id="camBtn" class="cam_button" type="button" value="Stop Camera"/>
-                        <canvas class="output_canvas" width="640px" height="500px"></canvas>
+                <div>
+                    <div id="webgl_container">
+                        <div id="videoContent" style="display: none;">
+                            <video class="input_video" style="display: none;"></video>
+                            <div style="position: relative; width: 640px; height: 500px; float: left;">
+                                <input id="camBtn" class="cam_button" type="button" value="Stop Camera"/>
+                                
+                                <canvas class="output_canvas" width="640px" height="500px" 
+                                    style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+                            </div>
+                            <img id="instruction_img" src="" style="float: left; margin-left: 15px; max-width: 400px; max-height: 400px; width:auto; height:auto;"></img>
+                        </div>
+                        <div id="dataOverlay" width="640px" height="500px"></div>
                     </div>
-                    <img id="instruction_img" src="" style="float: left; margin-left: 15px; max-width: 400px; max-height: 400px; width:auto; height:auto;"></img>
                 </div>
+                
+                <div style="margin:500px"></div>
                 <script src="js/mediapipe_index.js"></script>
+                <script src="js/three.js"></script>
+                <script src="js/THREE.MeshLine.js"></script>
+                <script src="js/orbitControl.js"></script>
+                <script src="js/dataVisualization.js"></script>
                 <span id="output"></span>
             </div>
             <div class="push"></div>
