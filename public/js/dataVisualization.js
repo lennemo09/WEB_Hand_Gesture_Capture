@@ -5,7 +5,7 @@
 var container = document.getElementById( 'dataOverlay' );
 
 // Global constants
-var plotRange = 10;
+var plotRange = 15;
 var scaleMax = 2.25;
 var scaleMin = 0.5;
 var frustumSize = 1000;
@@ -19,7 +19,7 @@ let scaleSpeed = .005;
 
 // Scene and camera initialisation
 var scene = new THREE.Scene();
-var dataCamera = new THREE.PerspectiveCamera( 60, $(container).width() / $(container).height(), .1, 1000 );
+var dataCamera = new THREE.PerspectiveCamera( 55, $(container).width() / $(container).height(), .1, 1000 );
 dataCamera.position.set( 0, 20, 20 );
 var resolution = new THREE.Vector2( $(container).width(), $(container).height() );
 
@@ -28,6 +28,7 @@ var renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true });
 renderer.setSize($(container).width(), $(container).height());
 renderer.setPixelRatio( window.devicePixelRatio );
 container.appendChild( renderer.domElement );
+container.style.pointerEvents = "none"; // Disable mouse control - Enable for debugging only
 
 // Camera orbit and mouse control
 var controls = new THREE.OrbitControls( dataCamera, renderer.domElement );
@@ -38,6 +39,7 @@ var modelPivot = new THREE.Group();
 var dataPivot = new THREE.Group();
 var dataGeometries = new THREE.Group();
 
+addLights(); // Add lighting to scene
 init();
 
 /**
@@ -84,6 +86,58 @@ function plotPoint(x=0, y=0, z=0, radius = 0.3, color = 0x000000) {
     dataGeometries.add( sphere );
 
     return sphere
+}
+
+function addLights() {
+    scene.add( new THREE.AmbientLight( 0xffffff, 0.65 ) );
+
+    const light = new THREE.DirectionalLight( 0xffffff, 1.0 );
+    light.position.set( 1, 1, 1 );
+    light.castShadow = true;
+    light.shadow.radius = 8;
+    light.shadow.mapSize.width = 1024;
+    light.shadow.mapSize.height = 1024;
+
+    const d = 10;
+
+    light.shadow.camera.left = - d;
+    light.shadow.camera.right = d;
+    light.shadow.camera.top = d;
+    light.shadow.camera.bottom = - d;
+    light.shadow.camera.far = 1000;
+
+    scene.add( light );
+
+}
+
+function plotOutlinedPoint(x=0, y=0, z=0, radius = 0.3, color = 0xffffff, outlineColor = 0x000000) {
+    const outlinedPoint = new THREE.Group();
+
+    const geometry = new THREE.SphereGeometry( radius, 32, 32 );
+    const material = new THREE.MeshStandardMaterial( {color: color} );
+    const sphere = new THREE.Mesh( geometry, material );
+    sphere.position.x = x;
+    sphere.position.y = y;
+    sphere.position.z = z;
+    outlinedPoint.add( sphere );
+
+    //Create outline object
+    var outlineGeometry = new THREE.SphereGeometry( radius, 32, 32 );
+    //Notice the second parameter of the material
+    var outlineMaterial = new THREE.MeshBasicMaterial({color : outlineColor, side: THREE.BackSide});
+    var outline = new THREE.Mesh(outlineGeometry, outlineMaterial);
+
+    outline.position.x = x;
+    outline.position.y = y;
+    outline.position.z = z;
+
+    //Scale the object up to have an outline (as discussed in previous answer)
+    outline.scale.multiplyScalar(1.2);
+    outlinedPoint.add(outline);
+    
+    dataGeometries.add( outlinedPoint );
+
+    return outlinedPoint
 }
 
 /**
@@ -144,7 +198,7 @@ function drawCartesianAxes(axisLength = plotRange, axisArrow = false) {
  * @param {Float} size Size of the point. Default is 0.2.
  * @returns {THREE.Group} The THREE.Group() geometry group containing the points.
  */
-function drawRandomPoints(count=10,min=0,max=plotRange,color=null,size=0.2) {
+function drawRandomPoints(count=10,min=0,max=plotRange,color=null,size=0.2,outlined=false) {
     let randomColor = false;
     if (color === null) {
         randomColor = true;
@@ -154,14 +208,19 @@ function drawRandomPoints(count=10,min=0,max=plotRange,color=null,size=0.2) {
         var randomX = Math.random() * (max - min) + min;
         var randomY = Math.random() * (max - min) + min;
         var randomZ = Math.random() * (max - min) + min;
-
+        console.log(randomX,randomY,randomZ);
         if (randomColor) {
             var greenValue = parseInt((randomX / max) * 255);
             var blueValue = parseInt((randomY / max) * 255);
             var redValue = parseInt((randomZ / max) * 255);
             color = "#" + ((1 << 24) + (redValue << 16) + (greenValue << 8) + blueValue).toString(16).slice(1);
         }
-        var newPoint = plotPoint(randomX, randomY, randomZ, size, color);
+        if (outlined) {
+            var newPoint = plotOutlinedPoint(randomX, randomY, randomZ, size, color);
+        } else {
+            var newPoint = plotPoint(randomX, randomY, randomZ, size, color);
+        }
+        
         randomPointsGroup.add(newPoint);
     }
 
@@ -176,7 +235,7 @@ function drawRandomPoints(count=10,min=0,max=plotRange,color=null,size=0.2) {
  */
 function init() {
     axesGroup = drawCartesianAxes(plotRange,true);
-    let randomPoints = drawRandomPoints(50,0,plotRange,null,0.3);
+    let randomPoints = drawRandomPoints(40,0,plotRange,0xffffff,0.3,true);
 
     scene.add(modelPivot);
     scene.add(dataPivot);
@@ -259,7 +318,7 @@ function scaleShowcase() {
 function animate() {
 
     requestAnimationFrame( animate );
-    rotateData();
+    //rotateData();
     //rotateModel(.01);
     //scaleShowcase();
     controls.update();
