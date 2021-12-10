@@ -11,8 +11,8 @@ var scaleMin = 0.5;
 var frustumSize = 1000;
 var axisThickness = 10;
 var axisColors = [0x00ff00, 0x0000ff, 0xff0000] // x, y ,z
-var axisConeRadius = .15
-var axisConeHeight = .5
+var axisConeRadius = .3
+var axisConeHeight = 1.2
 
 // Global variables
 let scaleSpeed = .005;
@@ -20,11 +20,12 @@ let scaleSpeed = .005;
 // Scene and camera initialisation
 var scene = new THREE.Scene();
 var dataCamera = new THREE.PerspectiveCamera( 55, $(container).width() / $(container).height(), .1, 1000 );
-dataCamera.position.set( 0, 20, 20 );
+dataCamera.position.set( 0, 2, 28 );
+//dataCamera.useOcclusionCulling = false;
 var resolution = new THREE.Vector2( $(container).width(), $(container).height() );
 
 // Renderer initialisation
-var renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true });
+var renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true, transparent: true });
 renderer.setSize($(container).width(), $(container).height());
 renderer.setPixelRatio( window.devicePixelRatio );
 container.appendChild( renderer.domElement );
@@ -38,6 +39,7 @@ var axesGroup;
 var modelPivot = new THREE.Group();
 var dataPivot = new THREE.Group();
 var dataGeometries = new THREE.Group();
+const boxPivot = new THREE.Group();
 
 addLights(); // Add lighting to scene
 init();
@@ -67,6 +69,27 @@ function drawLine(points, color, thickness=10) {
     return lineMesh;
 }
 
+function drawBox(startPoint, endPoint, color, alpha) {
+    const geometry = new THREE.BoxGeometry( 1, 1, 1 );
+    const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+    material.transparent = true;
+    material.opacity = 0.5;
+    const cube = new THREE.Mesh( geometry, material );
+    cube.position.x = 0.5;
+    cube.position.y = 0.5;
+    cube.position.z = 0.5;
+
+    boxPivot.add(cube);
+
+    boxPivot.position.z = 5;
+    boxPivot.scale.z = 5;
+    boxPivot.scale.x = 15;
+    boxPivot.scale.y = 15;
+    dataGeometries.add( boxPivot );
+
+    return cube;
+}
+
 /**
  * Plots a point (with a Sphere geometry) in space using given coordinates.
  * @param {Float} x Default is 0.
@@ -88,6 +111,9 @@ function plotPoint(x=0, y=0, z=0, radius = 0.3, color = 0x000000) {
     return sphere
 }
 
+/**
+ * Add a preset of lights to the scene. Including a main directional light and an ambient light.
+ */
 function addLights() {
     scene.add( new THREE.AmbientLight( 0xffffff, 0.65 ) );
 
@@ -110,6 +136,17 @@ function addLights() {
 
 }
 
+/**
+ * 
+ * Plots a point (with a Sphere geometry) in space using given coordinates with an outline.
+ * @param {Float} x Default is 0.
+ * @param {Float} y Default is 0.
+ * @param {Float} z Default is 0.
+ * @param {Float} radius Radius/size for the point mesh. Default is 0.3.
+ * @param {HexNumber} color Hex value for color for the point. Default is white.
+ * @param {HexNumber} outlineColor Hex value for color for the outline of the point. Default is black.
+ * @returns The Group() object of the point and its outline.
+ */
 function plotOutlinedPoint(x=0, y=0, z=0, radius = 0.3, color = 0xffffff, outlineColor = 0x000000) {
     const outlinedPoint = new THREE.Group();
 
@@ -119,6 +156,7 @@ function plotOutlinedPoint(x=0, y=0, z=0, radius = 0.3, color = 0xffffff, outlin
     sphere.position.x = x;
     sphere.position.y = y;
     sphere.position.z = z;
+
     outlinedPoint.add( sphere );
 
     //Create outline object
@@ -134,6 +172,11 @@ function plotOutlinedPoint(x=0, y=0, z=0, radius = 0.3, color = 0xffffff, outlin
     //Scale the object up to have an outline (as discussed in previous answer)
     outline.scale.multiplyScalar(1.2);
     outlinedPoint.add(outline);
+
+    outlinedPoint.renderOrder = 999;
+    outlinedPoint.onBeforeRender = function(renderer) {
+        renderer.clearDepth();
+    };
     
     dataGeometries.add( outlinedPoint );
 
@@ -234,6 +277,7 @@ function drawRandomPoints(count=10,min=0,max=plotRange,color=null,size=0.2,outli
  * IMPORTANT: Add the model and data into their Pivot groups for animation.
  */
 function init() {
+    drawBox();
     axesGroup = drawCartesianAxes(plotRange,true);
     let randomPoints = drawRandomPoints(40,0,plotRange,0xffffff,0.3,true);
 
@@ -246,6 +290,8 @@ function init() {
     modelPivot.add(axesGroup);
     axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
     dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+
+    rotateModel(1.3);
     
     animate();
 }
