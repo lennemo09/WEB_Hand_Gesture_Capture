@@ -6,7 +6,7 @@ var container = document.getElementById( 'dataOverlay' );
 
 // Global constants
 var plotRange = 15;
-var scaleMax = 2.25;
+var scaleMax = 1;
 var scaleMin = 0.5;
 var frustumSize = 1000;
 var axisThickness = 10;
@@ -16,6 +16,8 @@ var axisConeHeight = 1.2
 
 // Global variables
 let scaleSpeed = .005;
+let panSpeed = 0.1;
+let rotateSpeed = 0.03;
 
 // Scene and camera initialisation
 var scene = new THREE.Scene();
@@ -34,12 +36,39 @@ container.style.pointerEvents = "none"; // Disable mouse control - Enable for de
 // Camera orbit and mouse control
 var controls = new THREE.OrbitControls( dataCamera, renderer.domElement );
 
-// Global gometry groups
+// Global geometry groups
 var axesGroup;
 var modelPivot = new THREE.Group();
 var dataPivot = new THREE.Group();
 var dataGeometries = new THREE.Group();
 const boxPivot = new THREE.Group();
+
+// Animation geometries
+var selectionBox;
+const pointsGroup = new THREE.Group();
+const selectedPointsGroup = new THREE.Group();
+
+// Animation global vars
+const selectionHighlightDuration = 200;
+const deselectedDuration = 200;
+const selectionBoxHoldDuration = 100;
+const transformHoldDuration = 200;
+const maxShiftedDistance = 4;
+const maxRotateDistance = 1.5;
+
+var transformSpeed;
+var isTransformPhase1 = true;
+var isTransformPhase2 = false;
+
+var globalFramesCount = 0;
+var selectionBoxHoldFrames = 0;
+var selectionHighlightFrames = 0;
+var transformHoldFrames = 0;
+var deselectedFrames = 0;
+
+var shiftedDistance = 0;
+var rotateDistance = 0;
+
 
 addLights(); // Add lighting to scene
 init();
@@ -82,12 +111,12 @@ function drawBox(startPoint, endPoint, color, alpha) {
     boxPivot.add(cube);
 
     boxPivot.position.z = 5;
-    boxPivot.scale.z = 5;
+    boxPivot.scale.z = 0;
     boxPivot.scale.x = 15;
-    boxPivot.scale.y = 15;
+    boxPivot.scale.y = 0.1;
     dataGeometries.add( boxPivot );
 
-    return cube;
+    return boxPivot;
 }
 
 /**
@@ -271,15 +300,89 @@ function drawRandomPoints(count=10,min=0,max=plotRange,color=null,size=0.2,outli
     return randomPointsGroup;
 }
 
-/**
- * Initialise the scene.
- * Draws the axes and data here.
- * IMPORTANT: Add the model and data into their Pivot groups for animation.
- */
-function init() {
-    drawBox();
+function changeOutlinePointColor(point, newColor = 0xffffff) {
+    const mainPoint = point.children[0];
+    mainPoint.material.color.setHex(newColor);
+}
+
+function animateSelectRange() {
+    requestAnimationFrame( animateSelectRange );
+    
+    globalFramesCount++;
+    if (selectionBox.scale.z == 0 && selectionHighlightFrames == 0) {
+        // Start animation
+        boxPivot.scale.z = 0.1;
+        boxPivot.scale.x = 15;
+        boxPivot.scale.y = 0.1;
+    } else if (selectionBox.scale.z < 9 && selectionHighlightFrames == 0) {
+        selectionBox.scale.z += 0.1;
+    } else {
+        if (selectionBoxHoldFrames < selectionBoxHoldDuration) {
+            selectionBoxHoldFrames++;
+        } else {
+            if (selectionHighlightFrames == 0) {
+                // Change color of points, 
+                for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+                    changeOutlinePointColor(selectedPointsGroup.children[i], 0xffff00);
+                }
+                // Remove box
+                selectionBox.scale.x = 0;
+                selectionBox.scale.y = 0;
+                selectionBox.scale.z = 0;
+                selectionHighlightFrames++;
+            } else if (selectionHighlightFrames < selectionHighlightDuration) {
+                // Do nothing
+                selectionHighlightFrames++;
+            } else {
+                // Reset animation: Change color back to white     
+                for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+                    changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
+                }
+
+                selectionHighlightFrames = 0;
+                selectionBoxHoldFrames = 0;
+                selectionHighlightFrames = 0;
+                globalFramesCount = 0;
+            }
+        }
+       
+    }
+    
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function selectRange() {
+    selectionBox = drawBox();
     axesGroup = drawCartesianAxes(plotRange,true);
-    let randomPoints = drawRandomPoints(40,0,plotRange,0xffffff,0.3,true);
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 8, 1, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 10, 2, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(0, 13, 3, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+
+    // Select range [5,14]
+    selectedPointsGroup.add(plotOutlinedPoint(15, 11, 5, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(4, 4, 5, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(12, 4, 7, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(6, 14, 9, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(13, 5, 9, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(12, 3, 10, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(2, 4, 11, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(15, 8, 11, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(5, 8, 13, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
 
     scene.add(modelPivot);
     scene.add(dataPivot);
@@ -290,10 +393,426 @@ function init() {
     modelPivot.add(axesGroup);
     axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
     dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
-
+    
     rotateModel(1.3);
     
-    animate();
+    animateSelectRange();
+}
+
+function animateSelectSinglePoint() {
+    requestAnimationFrame( animateSelectSinglePoint );
+    
+    globalFramesCount++;
+    if (deselectedFrames < deselectedDuration && selectionHighlightFrames == 0) {
+        // Do nothing
+        deselectedFrames++;
+    } else if (selectionHighlightFrames == 0) {
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffff00);
+        }
+        selectionHighlightFrames++;
+    } else if (selectionHighlightFrames < selectionHighlightDuration) {
+        // Do nothing
+        selectionHighlightFrames++;
+    } else {
+        // Reset animation: Change color back to white     
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
+        }
+
+        selectionHighlightFrames = 0;
+        deselectedFrames = 0;
+        globalFramesCount = 0;
+    }    
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function selectSinglePoint() {
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+
+    // Select a point
+    selectedPointsGroup.add(plotOutlinedPoint(0, 7, 10, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    animateSelectSinglePoint();
+}
+
+function animateSelectCluster() {
+    requestAnimationFrame( animateSelectCluster );
+    
+    globalFramesCount++;
+    if (deselectedFrames < deselectedDuration && selectionHighlightFrames == 0) {
+        // Do nothing
+        deselectedFrames++;
+    } else if (selectionHighlightFrames == 0) {
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffff00);
+        }
+        selectionHighlightFrames++;
+    } else if (selectionHighlightFrames < selectionHighlightDuration) {
+        // Do nothing
+        selectionHighlightFrames++;
+    } else {
+        // Reset animation: Change color back to white     
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
+        }
+
+        selectionHighlightFrames = 0;
+        deselectedFrames = 0;
+        globalFramesCount = 0;
+    }    
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function selectCluster() {
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(4, 4, 3, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 4, 2, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 3, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 4, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(6, 5, 3, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(2, 5, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 5, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 2, 3, 0.3, 0xffffff));
+
+    // Select a cluster
+    selectedPointsGroup.add(plotOutlinedPoint(3, 7, 10, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(4, 7, 11, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(4, 6, 9, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(3, 8, 10, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(5, 6, 11, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(6, 6, 9, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(4, 5, 9, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(7, 7, 10, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(3, 13, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 12, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(6, 14, 12, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 14, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 13, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(5, 12, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(6, 11, 13, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    animateSelectCluster();
+}
+
+function animateZoom() {
+    requestAnimationFrame( animateZoom );
+    
+    globalFramesCount++;
+    
+    if (transformHoldFrames < transformHoldDuration) {
+        // Do nothing
+        transformHoldFrames++;
+    } else {
+        if (isTransformPhase1) {
+            transformSpeed = -scaleSpeed;
+            if (dataPivot.scale.x > scaleMin) {
+                scaleData(transformSpeed);
+            } else {
+                isTransformPhase1 = false;
+                isTransformPhase2 = !isTransformPhase1;
+                transformHoldFrames = 0;
+            }
+        } else if (isTransformPhase2) {
+            transformSpeed = scaleSpeed;
+            if (dataPivot.scale.x < scaleMax) {
+                scaleData(transformSpeed);
+            } else {
+                isTransformPhase2 = false;
+                isTransformPhase1 = !isTransformPhase2;
+                transformHoldFrames = 0;
+            }
+        }
+    }
+
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function zoom() {
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 8, 1, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 10, 2, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(0, 13, 3, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+
+    // Select range [5,14]
+    pointsGroup.add(plotOutlinedPoint(15, 11, 5, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 4, 5, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 4, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(6, 14, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 5, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 3, 10, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(2, 4, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(15, 8, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(5, 8, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    transformSpeed = scaleSpeed;
+    animateZoom();
+}
+
+function animatePan() {
+    requestAnimationFrame( animatePan );
+    
+    globalFramesCount++;
+    
+    if (transformHoldFrames < transformHoldDuration) {
+        // Do nothing
+        transformHoldFrames++;
+    } else {
+        if (isTransformPhase1) {
+            transformSpeed = -panSpeed;
+            if (shiftedDistance < maxShiftedDistance) {
+                dataPivot.position.x += transformSpeed;
+                shiftedDistance += panSpeed;
+            } else {
+                isTransformPhase1 = false;
+                isTransformPhase2 = !isTransformPhase1;
+                transformHoldFrames = 0;
+                shiftedDistance = 0;
+            }
+        } else if (isTransformPhase2) {
+            transformSpeed = panSpeed;
+            if (shiftedDistance < maxShiftedDistance) {
+                dataPivot.position.x += transformSpeed;
+                shiftedDistance += panSpeed;
+            } else {
+                isTransformPhase2 = false;
+                isTransformPhase1 = !isTransformPhase2;
+                transformHoldFrames = 0;
+                shiftedDistance = 0;
+            }
+        }
+    }
+
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function pan() {
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    // Sorted in Z direction
+
+    pointsGroup.add(plotOutlinedPoint(15, 11, 5, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 4, 5, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 4, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(6, 14, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 5, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 3, 10, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(2, 4, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(15, 8, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(5, 8, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    transformSpeed = scaleSpeed;
+    animatePan();
+}
+
+function animateRotate() {
+    requestAnimationFrame( animateRotate );
+    
+    globalFramesCount++;
+    
+    if (transformHoldFrames < transformHoldDuration) {
+        // Do nothing
+        transformHoldFrames++;
+    } else {
+        if (isTransformPhase1) {
+            transformSpeed = -rotateSpeed;
+            if (rotateDistance < maxRotateDistance) {
+                rotateData(transformSpeed);
+                rotateDistance += rotateSpeed;
+            } else {
+                isTransformPhase1 = false;
+                isTransformPhase2 = !isTransformPhase1;
+                transformHoldFrames = 0;
+                rotateDistance = 0;
+            }
+        } else if (isTransformPhase2) {
+            transformSpeed = rotateSpeed;
+            if (rotateDistance < maxRotateDistance) {
+                rotateData(transformSpeed);
+                rotateDistance += rotateSpeed;
+            } else {
+                isTransformPhase2 = false;
+                isTransformPhase1 = !isTransformPhase2;
+                transformHoldFrames = 0;
+                rotateDistance = 0;
+            }
+        }
+    }
+
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function rotate() {
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 8, 1, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 10, 2, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(0, 13, 3, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(15, 11, 5, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 4, 5, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 4, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(6, 14, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 5, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 3, 10, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(2, 4, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(15, 8, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(5, 8, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    transformSpeed = scaleSpeed;
+    animateRotate();
+}
+
+/**
+ * Initialise the scene.
+ * Draws the axes and data here.
+ * IMPORTANT: Add the model and data into their Pivot groups for animation.
+ */
+function init() {
+    // drawBox();
+    // axesGroup = drawCartesianAxes(plotRange,true);
+    // let randomPoints = drawRandomPoints(40,0,plotRange,0xffffff,0.3,true);
+
+    // scene.add(modelPivot);
+    // scene.add(dataPivot);
+
+    // // Resets rotation pivot to center of the entire group instead of 0,0,0
+    // modelPivot.add(dataGeometries);
+    // dataPivot.add(dataGeometries);
+    // modelPivot.add(axesGroup);
+    // axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    // dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+
+    // rotateModel(1.3);
+    
+    // animate();
+
+    //selectRange();
+    //selectSinglePoint();
+    selectCluster();
+    //zoom();
+    //pan();
+    //rotate();
 }
 
 onWindowResize();
