@@ -307,6 +307,24 @@ function changeOutlinePointColor(point, newColor = 0xffffff) {
     mainPoint.material.color.setHex(newColor);
 }
 
+function disableOutlinePointColor(point, alpha = 0.3) {
+    const mainPoint = point.children[0];
+    const outline = point.children[1];
+    mainPoint.material.transparent = true;
+    mainPoint.material.opacity = alpha;
+
+    outline.visible = false;
+}
+
+function enableOutlinePointColor(point) {
+    const mainPoint = point.children[0];
+    const outline = point.children[1];
+    mainPoint.material.transparent = false;
+    mainPoint.material.opacity = 1;
+
+    outline.visible = true;
+}
+
 function animateSelectRange() {
     requestAnimationFrame( animateSelectRange );
     
@@ -785,6 +803,35 @@ function rotate() {
     animateRotate();
 }
 
+function animateSelectMultiple() {
+    requestAnimationFrame( animateSelectMultiple );
+    
+    globalFramesCount++;
+
+    if (pointsSelected === selectedPointsGroup.children.length) {
+        // Reset animation: Change color back to white     
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
+        }
+        pointsSelected = 0;
+        selectionHighlightFrames = 0;
+    } else {
+        if (selectionHighlightFrames == 0) {
+            changeOutlinePointColor(selectedPointsGroup.children[pointsSelected], 0xffff00);
+            selectionHighlightFrames++;
+            pointsSelected++;
+        } else if (selectionHighlightFrames < delayBetweenPoints) {
+            // Do nothing
+            selectionHighlightFrames++;
+        } else {
+            selectionHighlightFrames = 0;
+        }
+    }
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
 function selectMultiple() {
     axesGroup = drawCartesianAxes(plotRange,true);
 
@@ -827,37 +874,186 @@ function selectMultiple() {
     animateSelectMultiple();
 }
 
-function animateSelectMultiple() {
-    requestAnimationFrame( animateSelectMultiple );
+function animateSelectAxis() {
+    requestAnimationFrame( animateSelectAxis );
     
     globalFramesCount++;
-
-    if (pointsSelected === selectedPointsGroup.children.length) {
-        // Reset animation: Change color back to white     
-        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
-            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
-        }
-        pointsSelected = 0;
-        selectionHighlightFrames = 0;
+    if (deselectedFrames < deselectedDuration && selectionHighlightFrames == 0) {
+        // Do nothing
+        deselectedFrames++;
+    } else if (selectionHighlightFrames == 0) {        
+        axesGroup.children[1].material.color.setHex(0xffff00);
+        axesGroup.children[4].material.color.setHex(0xffff00);
+        axesGroup.children[6].material.opacity = 1;
+        selectionHighlightFrames++;
+    } else if (selectionHighlightFrames < selectionHighlightDuration) {
+        // Do nothing
+        selectionHighlightFrames++;
     } else {
-        if (selectionHighlightFrames == 0) {
-            changeOutlinePointColor(selectedPointsGroup.children[pointsSelected], 0xffff00);
-            selectionHighlightFrames++;
-            pointsSelected++;
-        } else if (selectionHighlightFrames < delayBetweenPoints) {
-            // Do nothing
-            selectionHighlightFrames++;
-        } else {
-            selectionHighlightFrames = 0;
-        }
-    }
+        // Reset animation: Change color back to original     
+        axesGroup.children[1].material.color.setHex(axisColors[1]);
+        axesGroup.children[4].material.color.setHex(axisColors[1]);
+        axesGroup.children[6].material.opacity = 0;
+
+        selectionHighlightFrames = 0;
+        deselectedFrames = 0;
+        globalFramesCount = 0;
+    }    
     controls.update();
 
 	renderer.render( scene, dataCamera );
 }
 
 function selectAxis() {
+    axesGroup = drawCartesianAxes(plotRange,true);
     
+    const boxSize = 1;
+    const boxLine = drawLine(
+        [-boxSize,0.0,-boxSize,
+        -boxSize,0.0,boxSize,
+        boxSize,0.0,boxSize,
+        boxSize,0.0,-boxSize,
+        -boxSize,0.0,-boxSize,
+        -boxSize,16.0,-boxSize,
+        boxSize,16.0,-boxSize,
+        boxSize,0.0,-boxSize,
+        boxSize,16.0,-boxSize,
+        boxSize,16.0,boxSize,
+        boxSize,0.0,boxSize,
+        boxSize,16.0,boxSize,
+        -boxSize,16.0,boxSize,
+        -boxSize,0.0,boxSize,
+        -boxSize,16.0,boxSize,
+        -boxSize,16.0,-boxSize]
+        ,0xffffff,4);
+        boxLine.rotation.y += 0.4;
+    boxLine.material.transparent = true;
+    boxLine.material.opacity = 0;
+    axesGroup.add(boxLine);
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+
+    // Select a point
+    selectedPointsGroup.add(plotOutlinedPoint(0, 7, 10, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+
+    animateSelectAxis();
+}
+
+function animateFilterSelection() {
+    requestAnimationFrame( animateFilterSelection );
+    
+    globalFramesCount++;
+    if (selectionBox.scale.z == 0 && selectionHighlightFrames == 0) {
+        // Start animation
+        boxPivot.scale.z = 0.1;
+        boxPivot.scale.x = 15;
+        boxPivot.scale.y = 0.1;
+    } else if (selectionBox.scale.z < 8 && selectionHighlightFrames == 0) {
+        selectionBox.scale.z += 0.1;
+    } else {
+        if (selectionBoxHoldFrames < selectionBoxHoldDuration) {
+            selectionBoxHoldFrames++;
+        } else {
+            if (selectionHighlightFrames == 0) {
+                // Change color of points, 
+                for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+                    disableOutlinePointColor(selectedPointsGroup.children[i]);
+                }
+                // Remove box
+                selectionBox.scale.x = 0;
+                selectionBox.scale.y = 0;
+                selectionBox.scale.z = 0;
+                selectionHighlightFrames++;
+            } else if (selectionHighlightFrames < selectionHighlightDuration) {
+                // Do nothing
+                selectionHighlightFrames++;
+            } else {
+                // Reset animation: Change color back to white     
+                for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+                    enableOutlinePointColor(selectedPointsGroup.children[i]);
+                }
+
+                selectionHighlightFrames = 0;
+                selectionBoxHoldFrames = 0;
+                selectionHighlightFrames = 0;
+                globalFramesCount = 0;
+            }
+        }
+       
+    }
+    
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function filterSelection() {
+    selectionBox = drawBox();
+    selectionBox.position.z = 0;
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    // Sorted in Z direction
+    selectedPointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(7, 8, 1, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(3, 10, 2, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(0, 13, 3, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(15, 11, 5, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(4, 4, 5, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));    
+    selectedPointsGroup.add(plotOutlinedPoint(6, 14, 9, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(13, 5, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 3, 10, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(2, 4, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(15, 8, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(5, 8, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    animateFilterSelection();
 }
 
 /**
@@ -873,7 +1069,8 @@ function init() {
     //pan();
     //rotate();
     //selectMultiple();
-
+    //selectAxis();
+    //filterSelection();
     /// ADD DISABLE MediaPipe SKELETON
 }
 
