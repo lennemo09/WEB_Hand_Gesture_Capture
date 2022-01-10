@@ -55,6 +55,7 @@ const selectionBoxHoldDuration = 100;
 const transformHoldDuration = 200;
 const maxShiftedDistance = 4;
 const maxRotateDistance = 1.5;
+const delayBetweenPoints = 200;
 
 var transformSpeed;
 var isTransformPhase1 = true;
@@ -69,6 +70,7 @@ var deselectedFrames = 0;
 var shiftedDistance = 0;
 var rotateDistance = 0;
 
+var pointsSelected = 0;
 
 addLights(); // Add lighting to scene
 init();
@@ -783,36 +785,96 @@ function rotate() {
     animateRotate();
 }
 
+function selectMultiple() {
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    // Sorted in Z direction
+    
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+        
+    pointsGroup.add(plotOutlinedPoint(1.5, 3, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    
+    // Select a point
+    selectedPointsGroup.add(plotOutlinedPoint(0, 0, 0, 0.00001, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(3, 14, 0, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(0, 7, 10, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(4, 7, 11, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(3, 3, 14, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(0, 0, 0, 0.0001, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1.5, 3, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(4, 4, 14, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 3, 13, 0.3, 0xffffff));
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    animateSelectMultiple();
+}
+
+function animateSelectMultiple() {
+    requestAnimationFrame( animateSelectMultiple );
+    
+    globalFramesCount++;
+
+    if (pointsSelected === selectedPointsGroup.children.length) {
+        // Reset animation: Change color back to white     
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
+        }
+        pointsSelected = 0;
+        selectionHighlightFrames = 0;
+    } else {
+        if (selectionHighlightFrames == 0) {
+            changeOutlinePointColor(selectedPointsGroup.children[pointsSelected], 0xffff00);
+            selectionHighlightFrames++;
+            pointsSelected++;
+        } else if (selectionHighlightFrames < delayBetweenPoints) {
+            // Do nothing
+            selectionHighlightFrames++;
+        } else {
+            selectionHighlightFrames = 0;
+        }
+    }
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function selectAxis() {
+    
+}
+
 /**
  * Initialise the scene.
  * Draws the axes and data here.
  * IMPORTANT: Add the model and data into their Pivot groups for animation.
  */
 function init() {
-    // drawBox();
-    // axesGroup = drawCartesianAxes(plotRange,true);
-    // let randomPoints = drawRandomPoints(40,0,plotRange,0xffffff,0.3,true);
-
-    // scene.add(modelPivot);
-    // scene.add(dataPivot);
-
-    // // Resets rotation pivot to center of the entire group instead of 0,0,0
-    // modelPivot.add(dataGeometries);
-    // dataPivot.add(dataGeometries);
-    // modelPivot.add(axesGroup);
-    // axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
-    // dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
-
-    // rotateModel(1.3);
-    
-    // animate();
-
     //selectRange();
     //selectSinglePoint();
-    selectCluster();
+    //selectCluster();
     //zoom();
     //pan();
     //rotate();
+    //selectMultiple();
+
+    /// ADD DISABLE MediaPipe SKELETON
 }
 
 onWindowResize();
