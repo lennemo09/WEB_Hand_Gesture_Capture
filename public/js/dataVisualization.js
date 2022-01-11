@@ -38,9 +38,11 @@ var controls = new THREE.OrbitControls( dataCamera, renderer.domElement );
 
 // Global geometry groups
 var axesGroup;
+var textBoxPivot;
 var modelPivot = new THREE.Group();
 var dataPivot = new THREE.Group();
 var dataGeometries = new THREE.Group();
+var lassoLines;
 const boxPivot = new THREE.Group();
 
 // Animation geometries
@@ -56,12 +58,16 @@ const transformHoldDuration = 200;
 const maxShiftedDistance = 4;
 const maxRotateDistance = 1.5;
 const delayBetweenPoints = 200;
+const lineDrawInterval = 70;
 
 var transformSpeed;
 var isTransformPhase1 = true;
 var isTransformPhase2 = false;
 
 var globalFramesCount = 0;
+var lassoAnimationFramesCount = 0;
+var lassoLastLineDrawnFrame = 0;
+var lassoPointsSelectedFrame = 0;
 var selectionBoxHoldFrames = 0;
 var selectionHighlightFrames = 0;
 var transformHoldFrames = 0;
@@ -69,7 +75,7 @@ var deselectedFrames = 0;
 
 var shiftedDistance = 0;
 var rotateDistance = 0;
-
+var lassoLinesDrawn = 0;
 var pointsSelected = 0;
 
 addLights(); // Add lighting to scene
@@ -82,7 +88,7 @@ init();
  * @param {Float} thickness Thickness for the line.
  * @returns The Mesh() object of the line drawn.
  */
-function drawLine(points, color, thickness=10) {
+function drawLine(points, color=0xffffff, thickness=10) {
     const line = new MeshLine();
     line.setPoints(points);
 
@@ -116,6 +122,27 @@ function drawBox(startPoint, endPoint, color, alpha) {
     boxPivot.scale.z = 0;
     boxPivot.scale.x = 15;
     boxPivot.scale.y = 0.1;
+    dataGeometries.add( boxPivot );
+
+    return boxPivot;
+}
+
+function drawTextBox(startPoint=[0,0,0], width=1, height=1, mat) {
+    const geometry = new THREE.BoxGeometry( 1, 1, 1 );
+    const material = mat;
+    const cube = new THREE.Mesh( geometry, material );
+    cube.position.x = 0.5;
+    cube.position.y = 0.5;
+    cube.position.z = 0.5;
+
+    boxPivot.add(cube);
+
+    boxPivot.position.x = startPoint[0];
+    boxPivot.position.y = startPoint[1];
+    boxPivot.position.z = startPoint[2];
+    boxPivot.scale.z = width;
+    boxPivot.scale.x = 0.1;
+    boxPivot.scale.y = height;
     dataGeometries.add( boxPivot );
 
     return boxPivot;
@@ -1056,6 +1083,190 @@ function filterSelection() {
     animateFilterSelection();
 }
 
+function animateHighlightSelection() {
+    requestAnimationFrame( animateHighlightSelection );
+    
+    globalFramesCount++;
+    if (deselectedFrames < deselectedDuration && selectionHighlightFrames == 0) {
+        // Do nothing
+        deselectedFrames++;
+    } else if (selectionHighlightFrames == 0) {
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffff00);
+        }
+        textBoxPivot.visible = true;
+        selectionHighlightFrames++;
+    } else if (selectionHighlightFrames < selectionHighlightDuration) {
+        // Do nothing
+        selectionHighlightFrames++;
+    } else {
+        // Reset animation: Change color back to white     
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
+        }
+        textBoxPivot.visible = false;
+
+        selectionHighlightFrames = 0;
+        deselectedFrames = 0;
+        globalFramesCount = 0;
+    }    
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function highlightSelection() {
+    var textCanvas = document.createElement("canvas");
+    textCanvas.width = 200;
+    textCanvas.height = 100;
+    var ctx = textCanvas.getContext("2d");
+    var texture = new THREE.CanvasTexture(textCanvas);
+    var material = new THREE.MeshBasicMaterial( { map: texture } );
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'left';
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, 200, 100);
+    ctx.fillStyle = "black";
+    ctx.font = "24px sans-serif";
+    ctx.fillText("Name: John Doe", 5, 24, 198);
+    ctx.fillText("Postcode: 3168", 5, 48, 198);
+    ctx.fillText("X: 7, Y: 10, Z:0", 5, 90, 198);
+      
+    axesGroup = drawCartesianAxes(plotRange,true);
+    textBoxPivot = drawTextBox([0,7.5,10.5],6,3,material);
+    textBoxPivot.visible = false;
+    dataGeometries.add(textBoxPivot);
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+
+    // Select a point
+    selectedPointsGroup.add(plotOutlinedPoint(0, 7, 10, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    
+    animateHighlightSelection();
+}
+
+function animateLasso() {
+    requestAnimationFrame( animateLasso );
+    
+    globalFramesCount++;
+
+    if ((lassoAnimationFramesCount > 0 && lassoAnimationFramesCount < lineDrawInterval && lassoLinesDrawn === 0) || 
+        (lassoLinesDrawn > 0 && lassoLinesDrawn < lassoLines.children.length && lassoAnimationFramesCount - lassoLastLineDrawnFrame > lineDrawInterval)) {
+        lassoLines.children[lassoLinesDrawn].visible = true;
+        lassoLinesDrawn++;
+        lassoLastLineDrawnFrame = lassoAnimationFramesCount;
+    } else if (lassoLinesDrawn === lassoLines.children.length && lassoAnimationFramesCount - lassoLastLineDrawnFrame > lineDrawInterval) {
+        for (let i = 0; i < lassoLines.children.length; i++) {
+            lassoLines.children[i].visible = false;
+        }
+
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffff00);
+        }
+        lassoPointsSelectedFrame = lassoAnimationFramesCount;
+        lassoLinesDrawn = 0;
+        lassoLastLineDrawnFrame = 0;        
+    } else if (lassoPointsSelectedFrame > 0 && lassoAnimationFramesCount - lassoPointsSelectedFrame > selectionHighlightDuration) {
+        for (let i = 0; i < selectedPointsGroup.children.length; i++) {
+            changeOutlinePointColor(selectedPointsGroup.children[i], 0xffffff);
+        }
+        lassoAnimationFramesCount = 0;
+        lassoPointsSelectedFrame = 0;
+    }
+
+    lassoAnimationFramesCount++;
+    controls.update();
+
+	renderer.render( scene, dataCamera );
+}
+
+function selectLasso() {
+    axesGroup = drawCartesianAxes(plotRange,true);
+
+    lassoLines = new THREE.Group();
+    // Lasso segments: 0xffa500,8
+    // 4,6,3,4,9,4
+    // 4,9,4,4,7,12
+    // 4,7,12,4,3,8
+    // 4,3,8,4,3,4
+    // 4,3,4,4,6,3
+    lassoLines.add(drawLine([4,6,3,4,9,4],0xffa500,8));
+    lassoLines.add(drawLine([4,9,4,4,7,12],0xffa500,8));
+    lassoLines.add(drawLine([4,7,12,4,3,8],0xffa500,8));
+    lassoLines.add(drawLine([4,3,8,4,3,4],0xffa500,8));
+    lassoLines.add(drawLine([4,3,4,4,6,3],0xffa500,8));
+
+    for (let i = 0; i < lassoLines.children.length; i++) {
+        lassoLines.children[i].visible = false;
+    }
+    
+    selectedPointsGroup.add(plotOutlinedPoint(4, 4, 5, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(3, 6, 6, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(1, 8, 6, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(12, 4, 7, 0.3, 0xffffff));
+    selectedPointsGroup.add(plotOutlinedPoint(13, 5, 9, 0.3, 0xffffff));
+
+    // Sorted in Z direction
+    pointsGroup.add(plotOutlinedPoint(12, 14, 0, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 8, 1, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 10, 2, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(0, 13, 3, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(7, 10, 4, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(15, 11, 5, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(1, 12, 7, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(6, 14, 9, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(12, 3, 10, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(2, 4, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(15, 8, 11, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(5, 8, 13, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(13, 3, 14, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(11, 3, 15, 0.3, 0xffffff));
+    pointsGroup.add(plotOutlinedPoint(3, 9, 15, 0.3, 0xffffff));
+
+    dataGeometries.add(pointsGroup);
+    dataGeometries.add(selectedPointsGroup);    
+    dataGeometries.add(lassoLines);
+
+    scene.add(modelPivot);
+    scene.add(dataPivot);
+
+    // Resets rotation pivot to center of the entire group instead of 0,0,0
+    modelPivot.add(dataGeometries);
+    dataPivot.add(dataGeometries);
+    modelPivot.add(axesGroup);
+    axesGroup.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    dataGeometries.position.set(-plotRange/2,-plotRange/2,-plotRange/2);
+    
+    rotateModel(1.3);
+    animateLasso();
+}
+
 /**
  * Initialise the scene.
  * Draws the axes and data here.
@@ -1071,6 +1282,8 @@ function init() {
     //selectMultiple();
     //selectAxis();
     //filterSelection();
+    //highlightSelection();
+    //selectLasso();
     /// ADD DISABLE MediaPipe SKELETON
 }
 
